@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Data Sanitizer · IA locale</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --surface: #0a0a0a;
+            --surface-2: #141414;
+            --border: #1f1f1f;
+            --border-strong: #2a2a2a;
+            --text-main: #ededed;
+            --text-muted: #888888;
+            --text-faint: #555555;
+            --accent: #ffffff;
+            --success: #3fb950;
+            --warning: #d29922;
+            --error: #f85149;
+            --info: #58a6ff;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'SF Mono', Consolas, monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* ============== ONBOARDING ============== */
+        #onboarding {
+            width: 100%;
+            max-width: 640px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        #onboarding.complete {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .onboarding-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .onboarding-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .onboarding-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Progress dots above steps */
+        .stepper-progress {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 32px;
+        }
+
+        .stepper-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border-strong);
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .stepper-dot.done { background: var(--success); }
+        .stepper-dot.active { background: var(--info); transform: scale(1.4); }
+        .stepper-dot.error { background: var(--error); }
+
+        /* Individual step */
+        .step {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            background: var(--surface-2);
+            border: 1px solid transparent;
+            transition: background 0.3s, border-color 0.3s, opacity 0.3s;
+            opacity: 0.4;
+        }
+
+        .step.active {
+            opacity: 1;
+            border-color: var(--info);
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .step.done {
+            opacity: 0.7;
+            border-color: rgba(63, 185, 80, 0.3);
+        }
+
+        .step.error {
+            opacity: 1;
+            border-color: var(--error);
+            background: rgba(248, 81, 73, 0.05);
+        }
+
+        .step-marker {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--border-strong);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .step.active .step-marker { background: var(--info); color: var(--bg); }
+        .step.done .step-marker { background: var(--success); color: var(--bg); }
+        .step.done .step-marker::before { content: '✓'; }
+        .step.done .step-marker .marker-num { display: none; }
+        .step.error .step-marker { background: var(--error); color: #fff; }
+        .step.error .step-marker::before { content: '!'; }
+        .step.error .step-marker .marker-num { display: none; }
+
+        .step-body { flex: 1; min-width: 0; }
+
+        .step-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .step-detail {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .step-detail ol {
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+
+        .step-detail li {
+            margin-bottom: 6px;
+        }
+
+        .step-detail .inline-code {
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            background: var(--bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-strong);
+        }
+
+        /* Buttons */
+        button.primary {
+            background: var(--text-main);
+            color: var(--bg);
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            margin-top: 12px;
+        }
+
+        button.primary:hover { opacity: 0.9; }
+        button.primary:active { transform: scale(0.98); }
+        button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        button.copy-btn {
+            display: inline-block;
+            background: var(--bg);
+            border: 1px solid var(--border-strong);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: background 0.2s;
+            margin-top: 8px;
+        }
+
+        button.copy-btn:hover { background: var(--surface-2); }
+
+        /* Progress bar */
+        .progress-wrapper {
+            margin-top: 16px;
+        }
+
+        .progress-wrapper.hidden { display: none; }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg);
+            border: 1px solid var(--border-strong);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--info), var(--success));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .progress-pct { color: var(--text-main); font-weight: 600; }
+
+        /* ============== APP LAYOUT ============== */
+        #app-layout {
+            display: none;
+            width: 100%;
+            height: calc(100vh - 40px);
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        #app-layout.unlocked { display: grid; }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .panel-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            resize: none;
+        }
+        textarea:focus { outline: none; }
+
+        #output-area { color: var(--success); }
+
+        .action-bar {
+            padding: 14px 18px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .action-bar-input { justify-content: flex-end; }
+
+        .disclaimer {
+            font-size: 0.7rem;
+            color: var(--text-faint);
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .status-indicator {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* ============== UTILITIES ============== */
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            #app-layout.unlocked {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+                height: calc(100vh - 40px);
+            }
+            #onboarding { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============== ONBOARDING ============== -->
+<div id="onboarding">
+    <div class="onboarding-header">
+        <div class="onboarding-title">Local Data Sanitizer</div>
+        <div class="onboarding-subtitle">
+            Anonymisez vos données sensibles avec un LLM qui tourne <b>uniquement sur votre machine</b>.<br>
+            Zéro requête réseau, zéro fuite. Installation en 3 ou 4 étapes selon votre navigateur.
+        </div>
+    </div>
+
+    <div class="stepper-progress">
+        <div class="stepper-dot" data-dot="1"></div>
+        <div class="stepper-dot" data-dot="2"></div>
+        <div class="stepper-dot" data-dot="3"></div>
+        <div class="stepper-dot" data-dot="4"></div>
+    </div>
+
+    <!-- Step 1: Browser detection -->
+    <div class="step" data-step="1">
+        <div class="step-marker"><span class="marker-num">1</span></div>
+        <div class="step-body">
+            <div class="step-title">Vérification du navigateur</div>
+            <div class="step-detail" id="step-1-detail">Détection en cours…</div>
+        </div>
+    </div>
+
+    <!-- Step 2: Enable flag (conditional) -->
+    <div class="step" data-step="2">
+        <div class="step-marker"><span class="marker-num">2</span></div>
+        <div class="step-body">
+            <div class="step-title">Activer l'API IA locale</div>
+            <div class="step-detail" id="step-2-detail">
+                <p>Sur Chrome 138 à 147, l'API est cachée derrière un flag. Quelques étapes pour l'activer :</p>
+                <ol>
+                    <li>Copiez ce lien : <button class="copy-btn" id="copy-flag">chrome://flags/#prompt-api-for-gemini-nano</button></li>
+                    <li>Collez-le dans un nouvel onglet et appuyez sur Entrée</li>
+                    <li>Changez l'option sur <b>Enabled</b></li>
+                    <li>Cliquez <b>Relaunch</b> en bas à droite</li>
+                    <li>Revenez ici après le redémarrage</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Download model -->
+    <div class="step" data-step="3">
+        <div class="step-marker"><span class="marker-num">3</span></div>
+        <div class="step-body">
+            <div class="step-title">Télécharger Gemini Nano</div>
+            <div class="step-detail" id="step-3-detail">
+                <p>Modèle local, <b>≈ 1,5 à 4 Go selon votre machine</b>. Téléchargé une seule fois, partagé entre tous vos onglets Chrome.</p>
+                <button class="primary" id="trigger-download">Démarrer le téléchargement</button>
+                <div class="progress-wrapper hidden" id="progress-wrapper">
+                    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+                    <div class="progress-meta">
+                        <span><span class="progress-pct" id="progress-pct">0</span>%</span>
+                        <span id="progress-eta">démarrage…</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 4: Ready -->
+    <div class="step" data-step="4">
+        <div class="step-marker"><span class="marker-num">4</span></div>
+        <div class="step-body">
+            <div class="step-title">Activer le moteur</div>
+            <div class="step-detail" id="step-4-detail">
+                Le moteur tourne dans votre onglet. Vous pouvez fermer votre connexion internet, ça marche encore.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============== APP LAYOUT ============== -->
+<div id="app-layout">
+    <div class="panel">
+        <div class="panel-header">
+            <span>// Entrée · texte brut</span>
+        </div>
+        <textarea id="input-text" placeholder="Collez ici un texte contenant des données sensibles. Exemple : « Jean Dupont, 12 rue des Lilas 75011 Paris, jean.dupont@gmail.com, 06 12 34 56 78, salaire 4500 €. »"></textarea>
+        <div class="action-bar action-bar-input">
+            <button class="primary" id="process-btn">Anonymiser</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <span>// Sortie · texte assaini</span>
+            <span class="status-indicator" id="status-indicator">en attente</span>
+        </div>
+        <textarea id="output-area" readonly placeholder="Le résultat anonymisé apparaîtra ici."></textarea>
+        <div class="action-bar">
+            <div class="disclaimer">
+                <b>Démo expérimentale</b> · propulsée par Gemini Nano (Google) embarqué dans Chrome.<br>
+                Page HTML servie par Vercel (CDN statique, 26 Ko). <b>Inférence 100 % locale</b> : 0 octet ne sort de votre onglet pendant l'analyse, rien n'est stocké, fermez l'onglet et tout disparaît.<br>
+                Certaines infos sensibles peuvent être oubliées par le modèle : relisez toujours le résultat avant de le partager.<br>
+                Pas un outil de conformité RGPD à lui seul · <a href="https://github.com/jpp75-cc/local-data-sanitizer" target="_blank" rel="noopener" style="color: var(--info);">code ouvert sur GitHub</a>, auditable ligne par ligne.
+            </div>
+            <button class="primary" id="copy-output-btn" disabled>Copier le résultat</button>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+const FLAGS_URL = 'chrome://flags/#prompt-api-for-gemini-nano';
+const SYSTEM_PROMPT =
+    "You are a PII (personally identifiable information) sanitizer. " +
+    "Your only task: replace every piece of PII in the input with the literal token [CENSURÉ]. " +
+    "REPLACE: first names, last names, full names, postal addresses, street names, " +
+    "email addresses, phone numbers, IBAN numbers, social security numbers (any country), " +
+    "credit card numbers, dates of birth, license plates, passport numbers. " +
+    "KEEP UNCHANGED: well-known public company names, cities, countries, generic monetary amounts, " +
+    "job titles, generic dates not tied to a specific person. " +
+    "The input may be in French, English, or any other language — apply the same rules regardless. " +
+    "OUTPUT FORMAT: only the modified text. No commentary, no introduction, no quotes, no preamble.";
+
+let session = null;
+
+// ============== UI helpers ==============
+
+function setStepState(stepNum, state) {
+    // state: 'pending' | 'active' | 'done' | 'error'
+    const step = document.querySelector(`.step[data-step="${stepNum}"]`);
+    const dot = document.querySelector(`.stepper-dot[data-dot="${stepNum}"]`);
+    if (!step || !dot) return;
+    step.classList.remove('active', 'done', 'error');
+    dot.classList.remove('active', 'done', 'error');
+    if (state !== 'pending') {
+        step.classList.add(state);
+        dot.classList.add(state);
+    }
+}
+
+function setStepDetail(stepNum, htmlOrText, isHtml = false) {
+    const el = document.getElementById(`step-${stepNum}-detail`);
+    if (!el) return;
+    if (isHtml) el.innerHTML = htmlOrText;
+    else el.textContent = htmlOrText;
+}
+
+function showAppUnlocked() {
+    document.getElementById('onboarding').classList.add('complete');
+    document.getElementById('app-layout').classList.add('unlocked');
+    const indicator = document.getElementById('status-indicator');
+    indicator.textContent = 'moteur prêt · local';
+    indicator.style.color = 'var(--success)';
+}
+
+// ============== Browser detection ==============
+
+function detectBrowser() {
+    const ua = navigator.userAgent;
+    const edgeMatch = ua.match(/Edg\/(\d+)/);
+    if (edgeMatch) return { family: 'edge', version: parseInt(edgeMatch[1], 10) };
+    const operaMatch = ua.match(/OPR\/(\d+)/);
+    if (operaMatch) return { family: 'opera', version: parseInt(operaMatch[1], 10) };
+    const chromeMatch = ua.match(/Chrome\/(\d+)/);
+    if (chromeMatch) return { family: 'chrome', version: parseInt(chromeMatch[1], 10) };
+    if (/Firefox\//.test(ua)) return { family: 'firefox', version: null };
+    if (/Safari\//.test(ua)) return { family: 'safari', version: null };
+    return { family: 'unknown', version: null };
+}
+
+// ============== Boot sequence ==============
+
+async function boot() {
+    const browser = detectBrowser();
+    const apiPresent = 'LanguageModel' in self;
+
+    // --- Step 1: browser check ---
+    if (browser.family === 'chrome' && browser.version >= 138) {
+        setStepDetail(1, `Chrome ${browser.version} détecté. Compatible.`);
+        setStepState(1, 'done');
+    } else if (browser.family === 'edge' && apiPresent) {
+        setStepDetail(1, `Edge ${browser.version} détecté. L'API IA locale est disponible, vous pouvez continuer.`);
+        setStepState(1, 'done');
+    } else if (browser.family === 'chrome' && browser.version < 138) {
+        setStepDetail(1, `Chrome ${browser.version} détecté. Il faut <b>Chrome 138 ou plus récent</b>. Menu Chrome → Aide → À propos de Google Chrome (la mise à jour se lance automatiquement).`, true);
+        setStepState(1, 'error');
+        return;
+    } else {
+        const friendly = { firefox: 'Firefox', safari: 'Safari', opera: 'Opera', edge: 'Edge', unknown: 'navigateur inconnu' }[browser.family] || browser.family;
+        setStepDetail(1, `Détecté : <b>${friendly}</b>. Cet outil nécessite <b>Google Chrome 138+</b> ou Edge 138+. <a href="https://www.google.com/chrome/" style="color: var(--info);">Télécharger Chrome</a>.`, true);
+        setStepState(1, 'error');
+        return;
+    }
+
+    // --- Step 2: API exposed? ---
+    if (!apiPresent) {
+        // Flag needed
+        setStepState(2, 'active');
+        // Will resume on page reload after flag activation
+        return;
+    }
+
+    // API present → mark step 2 done (skipped or already enabled)
+    setStepDetail(2, 'API IA locale déjà active sur ce navigateur. Étape sautée.');
+    setStepState(2, 'done');
+
+    // --- Step 3: availability check ---
+    let availability;
+    try {
+        availability = await LanguageModel.availability();
+    } catch (e) {
+        console.error('LanguageModel.availability() failed:', e);
+        setStepDetail(3, 'Erreur lors de la vérification du modèle. Rechargez la page.');
+        setStepState(3, 'error');
+        return;
+    }
+
+    if (availability === 'unavailable') {
+        setStepDetail(3,
+            "<b>Appareil non supporté</b>. Gemini Nano demande un GPU avec ≥ 4 Go de VRAM " +
+            "et de l'espace disque libre (~22 Go selon Chrome). Vérifiez " +
+            "<span class='inline-code'>chrome://on-device-internals</span> pour le détail.",
+            true);
+        setStepState(3, 'error');
+        return;
+    }
+
+    if (availability === 'available') {
+        // Already downloaded somewhere. Chrome usually requires a user gesture
+        // to load the model into this tab's RAM/VRAM, so we show an explicit
+        // activation button rather than calling create() automatically.
+        setStepDetail(3, 'Modèle déjà téléchargé sur ce poste. Étape sautée.');
+        setStepState(3, 'done');
+        setStepState(4, 'active');
+        setStepDetail(4,
+            'Le moteur va être chargé en RAM dans cet onglet (3 à 10 secondes).<br>' +
+            '<button class="primary" id="activate-engine-btn">Activer le moteur</button>',
+            true);
+        document.getElementById('activate-engine-btn').addEventListener('click', () => {
+            const btn = document.getElementById('activate-engine-btn');
+            btn.disabled = true;
+            btn.textContent = 'Activation en cours…';
+            openSession({ showProgress: false, sourceStep: 4 });
+        });
+        return;
+    }
+
+    // 'downloadable' or 'downloading'
+    setStepState(3, 'active');
+    if (availability === 'downloading') {
+        // Attach automatically
+        document.getElementById('trigger-download').classList.add('hidden');
+        await openSession({ showProgress: true });
+    }
+}
+
+// ============== Session lifecycle ==============
+
+async function openSession({ showProgress = true, sourceStep = 3 } = {}) {
+    const progressWrapper = document.getElementById('progress-wrapper');
+    const progressFill = document.getElementById('progress-fill');
+    const progressPct = document.getElementById('progress-pct');
+    const progressEta = document.getElementById('progress-eta');
+    const triggerBtn = document.getElementById('trigger-download');
+
+    if (showProgress) {
+        progressWrapper.classList.remove('hidden');
+        if (triggerBtn) {
+            triggerBtn.disabled = true;
+            triggerBtn.textContent = 'Téléchargement en cours…';
+        }
+    }
+
+    let startMs = null;
+
+    try {
+        session = await LanguageModel.create({
+            initialPrompts: [
+                { role: 'system', content: SYSTEM_PROMPT }
+            ],
+            monitor(m) {
+                m.addEventListener('downloadprogress', (event) => {
+                    // event.loaded is a fraction 0..1 in current Chrome
+                    if (event.loaded === 0) return; // first ping is noisy
+                    if (startMs === null) startMs = Date.now();
+
+                    const pct = Math.floor(event.loaded * 100);
+                    progressFill.style.width = pct + '%';
+                    progressPct.textContent = pct;
+
+                    if (event.loaded >= 1) {
+                        progressEta.textContent = 'finalisation…';
+                        return;
+                    }
+
+                    const elapsedMs = Date.now() - startMs;
+                    const remainingMs = (elapsedMs / event.loaded) * (1 - event.loaded);
+                    const remainingMin = Math.max(1, Math.round(remainingMs / 60000));
+                    progressEta.textContent = `≈ ${remainingMin} min restante${remainingMin > 1 ? 's' : ''}`;
+                });
+            }
+        });
+
+        // Session ready
+        if (showProgress) {
+            progressFill.style.width = '100%';
+            progressPct.textContent = '100';
+            progressEta.textContent = 'prêt';
+        }
+        setStepState(3, 'done');
+        setStepState(4, 'active');
+        // Brief delay so users see the "100% done" then transition
+        setTimeout(showAppUnlocked, 600);
+    } catch (e) {
+        console.error('LanguageModel.create() failed:', e);
+        if (showProgress) progressEta.textContent = 'erreur · rechargez la page';
+        setStepState(sourceStep, 'error');
+        const activateBtn = document.getElementById('activate-engine-btn');
+        if (triggerBtn) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = 'Réessayer';
+        }
+        if (activateBtn) {
+            activateBtn.disabled = false;
+            activateBtn.textContent = 'Réessayer';
+        }
+    }
+}
+
+// ============== Event bindings ==============
+
+document.getElementById('copy-flag').addEventListener('click', async (ev) => {
+    const btn = ev.currentTarget;
+    const original = btn.textContent;
+    try {
+        await navigator.clipboard.writeText(FLAGS_URL);
+        btn.textContent = 'Copié — collez-le dans un nouvel onglet';
+    } catch {
+        btn.textContent = 'Sélectionnez et copiez manuellement : ' + FLAGS_URL;
+    }
+    setTimeout(() => { btn.textContent = original; }, 2500);
+});
+
+document.getElementById('trigger-download').addEventListener('click', () => {
+    openSession();
+});
+
+document.getElementById('process-btn').addEventListener('click', async () => {
+    const input = document.getElementById('input-text').value.trim();
+    if (!input || !session) return;
+
+    const btn = document.getElementById('process-btn');
+    const output = document.getElementById('output-area');
+    const indicator = document.getElementById('status-indicator');
+    const copyBtn = document.getElementById('copy-output-btn');
+
+    btn.disabled = true;
+    btn.textContent = 'Analyse…';
+    copyBtn.disabled = true;
+    indicator.textContent = 'inférence locale en cours…';
+    indicator.style.color = 'var(--warning)';
+    output.value = '';
+
+    try {
+        const result = await session.prompt(input);
+        output.value = result;
+        copyBtn.disabled = !result || !result.trim();
+        indicator.textContent = 'terminé · 0 octet émis sur le réseau';
+        indicator.style.color = 'var(--success)';
+    } catch (err) {
+        output.value = '';
+        indicator.textContent = 'erreur · voir la console';
+        indicator.style.color = 'var(--error)';
+        console.error(err);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Anonymiser';
+    }
+});
+
+document.getElementById('copy-output-btn').addEventListener('click', async (ev) => {
+    const output = document.getElementById('output-area');
+    if (!output.value) return;
+    const btn = ev.currentTarget;
+    const original = btn.textContent;
+    try {
+        await navigator.clipboard.writeText(output.value);
+        btn.textContent = 'Copié ✓';
+    } catch {
+        output.focus();
+        output.select();
+        btn.textContent = 'Sélectionnez et copiez manuellement';
+    }
+    setTimeout(() => { btn.textContent = original; }, 2000);
+});
+
+// Go.
+window.addEventListener('load', boot);
+</script>
+</body>
+</html>
