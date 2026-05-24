@@ -94,3 +94,11 @@ POC uniquement. La détection PII par LLM seul **n'est pas conforme RGPD** — d
 ## License
 
 MIT
+
+---
+
+## Built by
+
+[@jpp75-cc](https://github.com/jpp75-cc) — founder of [HLBRT Consulting](https://github.com/hlbrt-consulting).
+
+This POC was reviewed using the [10-Pass Protocol](https://github.com/hlbrt-consulting/10-pass-protocol) — an adversarial code review protocol developed in production for AI-assisted development.
